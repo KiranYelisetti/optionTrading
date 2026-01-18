@@ -1,0 +1,45 @@
+name: Daily Market Analysis
+
+on:
+  schedule:
+    # Run every 3 minutes
+    - cron: '*/3 * * * *'
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    
+    env:
+      input_client_id: ${{ secrets.DHAN_CLIENT_ID }}
+      input_access_token: ${{ secrets.DHAN_ACCESS_TOKEN }}
+
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+        
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
+        
+    - name: Create Config from Secrets
+      run: |
+        # Inject secrets into config.py or environment variables
+        # Assuming config.py reads from ENV or we replace placeholders
+        echo "CLIENT_ID = '$input_client_id'" > fortress-paper/config.py
+        echo "ACCESS_TOKEN = '$input_access_token'" >> fortress-paper/config.py
+        echo "# Add other config constants if needed" >> fortress-paper/config.py
+        
+    - name: Run Analyzer
+      run: |
+        python fortress-paper/core/analyzer.py
+        
+    - name: Upload Zones Artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: trading-zones
+        path: fortress-paper/data/zones.json

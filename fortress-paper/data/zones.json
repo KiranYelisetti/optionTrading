@@ -1,0 +1,122 @@
+[
+  {
+    "id": "NIFTY-JAN2026-FUT_PDH",
+    "symbol": "NIFTY-JAN2026-FUT",
+    "security_id": "49229",
+    "type": "SUPPLY",
+    "timeframe": "1D",
+    "range_high": 25860.0,
+    "range_low": 25840.0,
+    "note": "Previous Day High - Wait for Sweep"
+  },
+  {
+    "id": "NIFTY-JAN2026-FUT_PDL",
+    "symbol": "NIFTY-JAN2026-FUT",
+    "security_id": "49229",
+    "type": "DEMAND",
+    "timeframe": "1D",
+    "range_high": 25680.0,
+    "range_low": 25660.0,
+    "note": "Previous Day Low - Wait for Sweep"
+  },
+  {
+    "id": "OB_DEMAND_6",
+    "symbol": "NIFTY-JAN2026-FUT",
+    "security_id": "49229",
+    "type": "DEMAND",
+    "timeframe": "15m",
+    "range_high": 25795.0,
+    "range_low": 25766.1,
+    "note": "15m Bullish Order Block"
+  },
+  {
+    "id": "OB_DEMAND_7",
+    "symbol": "NIFTY-JAN2026-FUT",
+    "security_id": "49229",
+    "type": "DEMAND",
+    "timeframe": "15m",
+    "range_high": 25724.8,
+    "range_low": 25670.0,
+    "note": "15m Bullish Order Block"
+  },
+  {
+    "id": "OB_DEMAND_8",
+    "symbol": "NIFTY-JAN2026-FUT",
+    "security_id": "49229",
+    "type": "DEMAND",
+    "timeframe": "15m",
+    "range_high": 25875.6,
+    "range_low": 25837.0,
+    "note": "15m Bullish Order Block"
+  },
+  {
+    "id": "OB_SUPPLY_9",
+    "symbol": "NIFTY-JAN2026-FUT",
+    "security_id": "49229",
+    "type": "SUPPLY",
+    "timeframe": "15m",
+    "range_high": 25912.5,
+    "range_low": 25840.0,
+    "note": "15m Bearish Order Block"
+  },
+  {
+    "id": "BANKNIFTY-JAN2026-FUT_PDH",
+    "symbol": "BANKNIFTY-JAN2026-FUT",
+    "security_id": "49224",
+    "type": "SUPPLY",
+    "timeframe": "1D",
+    "range_high": 59960.0,
+    "range_low": 59940.0,
+    "note": "Previous Day High - Wait for Sweep"
+  },
+  {
+    "id": "BANKNIFTY-JAN2026-FUT_PDL",
+    "symbol": "BANKNIFTY-JAN2026-FUT",
+    "security_id": "49224",
+    "type": "DEMAND",
+    "timeframe": "1D",
+    "range_high": 59590.2,
+    "range_low": 59570.2,
+    "note": "Previous Day Low - Wait for Sweep"
+  },
+  {
+    "id": "OB_SUPPLY_3",
+    "symbol": "BANKNIFTY-JAN2026-FUT",
+    "security_id": "49224",
+    "type": "SUPPLY",
+    "timeframe": "15m",
+    "range_high": 59820.0,
+    "range_low": 59767.8,
+    "note": "15m Bearish Order Block"
+  },
+  {
+    "id": "OB_DEMAND_4",
+    "symbol": "BANKNIFTY-JAN2026-FUT",
+    "security_id": "49224",
+    "type": "DEMAND",
+    "timeframe": "15m",
+    "range_high": 59800.8,
+    "range_low": 59765.8,
+    "note": "15m Bullish Order Block"
+  },
+  {
+    "id": "OB_SUPPLY_5",
+    "symbol": "BANKNIFTY-JAN2026-FUT",
+    "security_id": "49224",
+    "type": "SUPPLY",
+    "timeframe": "15m",
+    "range_high": 60274.4,
+    "range_low": 60140.8,
+    "note": "15m Bearish Order Block"
+  },
+  {
+    "id": "OB_SUPPLY_6",
+    "symbol": "BANKNIFTY-JAN2026-FUT",
+    "security_id": "49224",
+    "type": "SUPPLY",
+    "timeframe": "15m",
+    "range_high": 60218.0,
+    "range_low": 60129.8,
+    "note": "15m Bearish Order Block"
+  }
+]
