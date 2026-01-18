@@ -4,6 +4,7 @@ import time
 import datetime
 import json
 from dhanhq import dhanhq, DhanFeed
+import pandas as pd
 from config import CLIENT_ID, ACCESS_TOKEN, ZONES_FILE, DB_PATH, LOG_FILE_PATH, TRADE_LOG_FILE
 from core.virtual_broker import VirtualBroker
 from core.strategy import FortressStrategy
@@ -27,7 +28,6 @@ def slow_loop():
     Background Task: Fetches Option Chain every 3 minutes.
     Updates Strategy Sentiment.
     """
-    global running
     logging.info("🐢 Slow Loop Started (Thread)")
     while running:
         try:
@@ -39,11 +39,10 @@ def slow_loop():
 
 def check_candle_loop():
     """
-    Background Task: Fetches 1-minute candle every minute.
-    Checks for Sweep Entry.
+    Background Task: Fetches 5-min Candles every minute.
+    Checks for Sweep Entries.
     """
-    global running, dhan
-    logging.info(f"🕯️ Candle Check Loop Started (1m Interval)")
+    logging.info("🕯️ Candle Check Loop Started (1m Interval)")
     
     # Symbols to watch
     try:
@@ -165,7 +164,7 @@ def check_candle_loop():
 SCRIP_MASTER_DF = None
 
 def load_scrip_master():
-    global SCRIP_MASTER_DF, dhan
+    global SCRIP_MASTER_DF
     logging.info("📥 Loading Scrip Master (this may take a moment)...")
     try:
         res = dhan.fetch_security_list()
@@ -187,7 +186,6 @@ def subscribe_to_legs(leg1_symbol, leg2_symbol):
     """
     Dynamically subscribes to new Option Strikes.
     """
-    global feed, SCRIP_MASTER_DF, dhan
     
     if not feed:
         logging.error("❌ Feed not ready for subscription.")
