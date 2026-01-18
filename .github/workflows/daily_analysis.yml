@@ -2,8 +2,8 @@ name: Daily Market Analysis
 
 on:
   schedule:
-    # Run every 3 minutes
-    - cron: '*/3 * * * *'
+    # Run Daily at 08:45 AM IST (03:15 UTC)
+    - cron: '15 3 * * *'
   workflow_dispatch: # Allow manual trigger
 
 jobs:
