@@ -26,15 +26,10 @@ jobs:
       run: |
         pip install -r requirements.txt
         
-    - name: Create Config from Secrets
-      run: |
-        # Inject secrets into config.py or environment variables
-        # Assuming config.py reads from ENV or we replace placeholders
-        echo "CLIENT_ID = '$input_client_id'" > fortress-paper/config.py
-        echo "ACCESS_TOKEN = '$input_access_token'" >> fortress-paper/config.py
-        echo "# Add other config constants if needed" >> fortress-paper/config.py
-        
     - name: Run Analyzer
+      env:
+        DHAN_CLIENT_ID: ${{ secrets.DHAN_CLIENT_ID }}
+        DHAN_ACCESS_TOKEN: ${{ secrets.DHAN_ACCESS_TOKEN }}
       run: |
         python fortress-paper/core/analyzer.py
         

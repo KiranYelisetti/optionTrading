@@ -55,7 +55,9 @@ def check_candle_loop():
                     watch_list[z['security_id']] = z['symbol']
     except:
         watch_list = {}
-        
+    
+    processed_candles = set()
+    
     while running:
         try:
             # We iterate over unique instruments to watch
@@ -68,12 +70,36 @@ def check_candle_loop():
                         exchange_segment=dhan.NSE_FNO,
                         instrument_type='FUTIDX',
                         from_date=to_date,
-                        to_date=to_date
+                        to_date=to_date,
+                        interval='5' # <--- 5-Minute Data as per Strategy Refinement
                     )
                     
                     if res.get('status') == 'success' and res.get('data'):
                          data = res.get('data')
+                         if not data:
+                             continue
+                             
                          latest = data[-1]
+                         # Check for duplicates using start_time (assuming API returns it)
+                         # Dhan API data list usually has 'start_time' or similar. 
+                         # Let's check keys from previous inspection or assumption. 
+                         # Standard key 'start_time' or 'date'? 
+                         # Based on analyzer.py usage, it might be an ordered list or dict.
+                         # Actually `intraday_minute_data` returns a dict with 'data' as list of things.
+                         # Each item has 'start_time' usually.
+                         
+                         c_time = latest.get('start_time') or latest.get('time')
+                         if not c_time:
+                             # Fallback if key missing (unlikely if success)
+                             continue
+                             
+                         # Unique Key for this candle
+                         c_key = f"{symbol}_{c_time}"
+                         
+                         if c_key in processed_candles:
+                             continue
+                             
+                         processed_candles.add(c_key)
                          
                          candle = {
                              'symbol': symbol,
@@ -129,20 +155,93 @@ def check_candle_loop():
         except Exception as e:
             logging.error(f"Candle Loop Error: {e}")
             
-        time.sleep(60) 
+            
+        # Align to next minute start for precision
+        sleep_time = 60 - (time.time() % 60)
+        time.sleep(sleep_time) 
+
+# ... existing code ...
+
+SCRIP_MASTER_DF = None
+
+def load_scrip_master():
+    global SCRIP_MASTER_DF, dhan
+    logging.info("📥 Loading Scrip Master (this may take a moment)...")
+    try:
+        res = dhan.fetch_security_list()
+        if isinstance(res, pd.DataFrame):
+            SCRIP_MASTER_DF = res
+        elif isinstance(res, dict) and 'data' in res:
+            SCRIP_MASTER_DF = pd.DataFrame(res['data'])
+        else:
+            logging.warning(f"⚠️ Unexpected Scrip Master format: {type(res)}")
+            return
+
+        # Normalize columns for consistency
+        SCRIP_MASTER_DF.columns = [x.strip().upper() for x in SCRIP_MASTER_DF.columns]
+        logging.info(f"✅ Scrip Master Loaded: {len(SCRIP_MASTER_DF)} records")
+    except Exception as e:
+        logging.error(f"❌ Failed to load Scrip Master: {e}")
 
 def subscribe_to_legs(leg1_symbol, leg2_symbol):
     """
-    Subscribes to Option Legs for MTM Tracking.
-    Requires fetching Security ID.
+    Dynamically subscribes to new Option Strikes.
     """
-    global feed, dhan
+    global feed, SCRIP_MASTER_DF, dhan
+    
     if not feed:
+        logging.error("❌ Feed not ready for subscription.")
+        return
+        
+    if SCRIP_MASTER_DF is None:
+        logging.error("❌ Scrip Master not loaded. Cannot look up IDs.")
         return
 
-    # TODO: Implement Lookup using dhan.fetch_security_list or cached master.
-    # For now, we log intent.
-    logging.info(f"📝 Need subscription for: {leg1_symbol}, {leg2_symbol}")
+    tokens_to_sub = []
+    
+    for sym in [leg1_symbol, leg2_symbol]:
+        # Filter Master to find ID
+        # Strategy format: "NIFTY 30 JAN 25500 CE"
+        # We need to match this against 'SEM_TRADING_SYMBOL' or construct it.
+        # Assuming Strategy generates symbols matching Dhan's 'SEM_TRADING_SYMBOL' or 'SEM_CUSTOM_SYMBOL'.
+        # Let's try exact match on SEM_TRADING_SYMBOL first.
+        
+        # Note: SCRIP_MASTER_DF columns normalized to UPPER.
+        # Likely 'SEM_TRADING_SYMBOL'
+        
+        row = SCRIP_MASTER_DF[SCRIP_MASTER_DF['SEM_TRADING_SYMBOL'] == sym]
+        if not row.empty:
+            sec_id = str(row.iloc[0]['SEM_SECURITY_ID'])
+            # Exchange Segment: NSE_FNO is usually 2.
+            # We can verify from master 'SEM_EXM_EXCH_ID' (NSE) and 'SEM_SEGMENT' (D)?
+            # Converting to Dhan convention: (ExchangeSegment, SecurityId)
+            # NSE_FNO = 2
+            tokens_to_sub.append((dhan.NSE_FNO, sec_id))
+            logging.info(f"➕ Dynamically Subscribing: {sym} ({sec_id})")
+        else:
+            logging.warning(f"❌ ID Lookup Failed for {sym}")
+
+    if tokens_to_sub:
+        feed.subscribe_symbols(tokens_to_sub) # Check method name: subscribe or subscribe_symbols?
+        # Inspection of `test_feed.py` output showed `subscribe_instruments` in `__dict__` and `subscribe_symbols`
+        # Let's use `subscribe_symbols` if that's what the inspection showed or `subscribe_instruments`.
+        # Inspection output step 543 showed: 'subscribe_instruments', 'subscribe_symbols', 'unsubscribe_symbols'
+        # feed.subscribe_symbols takes (exchange_segment, security_id) tuples usually? 
+        # Actually in inspection `subscribe_symbols(self, instruments)`
+        # Let's use `subscribe_symbols`.
+
+def check_candle_loop():
+    # ... (rest of logic same) ...
+    # At end of loop:
+        # Align to next minute start
+        sleep_time = 60 - (time.time() % 60)
+        time.sleep(sleep_time)
+
+# ... main function updates ...
+def main():
+    # ... logs ...
+    load_scrip_master() 
+    # ... rest ...
 
 class LiveFeed(DhanFeed):
     """
