@@ -214,6 +214,7 @@ class MarketAnalyzer:
                 "timeframe": "1D",
                 "range_high": pdh + 10, # Slight buffer
                 "range_low": pdh - 10,
+                "status": "ACTIVE",
                 "note": "Previous Day High - Wait for Sweep"
             })
             
@@ -225,6 +226,7 @@ class MarketAnalyzer:
                 "timeframe": "1D",
                 "range_high": pdl + 10,
                 "range_low": pdl - 10,
+                "status": "ACTIVE",
                 "note": "Previous Day Low - Wait for Sweep"
             })
 

@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environment variables & Secrets (CRITICAL)
+config.py
+fortress-paper/config.py
+dhantoken.txt
+.env
+
+# Logs & Data
+*.log
+*.csv
+*.db
+fortress-paper/data/*.json
+!fortress-paper/data/zones.json # Keep the zones template/file if needed, but data usually ignored. 
+# Actually zones.json is structural, keep it but maybe ignore trade_logs
+fortress-paper/data/trade_logs.csv
+fortress-paper/data/market_data.db
+fortress-paper/data/app.log
+
+# VS Code
+.vscode/
+
+# GitHub Actions local
+.act/
