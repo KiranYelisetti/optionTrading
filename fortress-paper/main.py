@@ -121,32 +121,41 @@ def check_candle_loop():
                              
                              width = 500 if "BANKNIFTY" in underlying else 200
                              
-                             if signal == "BUY_PUT_SPREAD":
-                                 # Bull Put Spread (Bullish Strategy: Sell PE, Buy Lower PE)
-                                 # Wait, standard Bull Put Spread is SELL High Strike PE, BUY Low Strike PE.
-                                 # This is a CREDIT Strategy.
-                                 sell_strike = atm_strike 
-                                 buy_strike = atm_strike - width
-                                 
-                                 # Leg 1: BUY Hedge (Long OTM)
-                                 leg1 = {'symbol': f"{underlying} {buy_strike} PE", 'qty': 50, 'price': 0, 'side': 'BUY'} 
-                                 # Leg 2: SELL Premium (Short ATM)
-                                 leg2 = {'symbol': f"{underlying} {sell_strike} PE", 'qty': 50, 'price': 0, 'side': 'SELL'}
-                                 
-                                 broker.execute_spread(leg1, leg2)
-                                 subscribe_to_legs(leg1['symbol'], leg2['symbol'])
-                                 
-                             elif signal == "SELL_CALL_SPREAD":
-                                 # Bear Call Spread (Bearish Strategy: Sell CE, Buy Higher CE)
-                                 # Credit Strategy.
-                                 sell_strike = atm_strike
-                                 buy_strike = atm_strike + width
-                                 
-                                 leg1 = {'symbol': f"{underlying} {buy_strike} CE", 'qty': 50, 'price': 0, 'side': 'BUY'}
-                                 leg2 = {'symbol': f"{underlying} {sell_strike} CE", 'qty': 50, 'price': 0, 'side': 'SELL'}
-                                 
-                                 broker.execute_spread(leg1, leg2)
-                                 subscribe_to_legs(leg1['symbol'], leg2['symbol'])
+                              # Helper to get Expiry String
+                              def get_expiry_str():
+                                  today = datetime.date.today()
+                                  days = (3 - today.weekday() + 7) % 7
+                                  return (today + datetime.timedelta(days=days)).strftime("%d %b").upper()
+                              
+                              expiry_str = get_expiry_str()
+
+                              if signal == "BUY_PUT_SPREAD":
+                                  # Bull Put Spread (Credit Strategy)
+                                  sell_strike = atm_strike 
+                                  buy_strike = atm_strike - width
+                                  
+                                  sym_buy = f"{underlying} {expiry_str} {buy_strike} PE"
+                                  sym_sell = f"{underlying} {expiry_str} {sell_strike} PE"
+                                  
+                                  leg1 = {'symbol': sym_buy, 'qty': 50, 'price': 0, 'side': 'BUY'} 
+                                  leg2 = {'symbol': sym_sell, 'qty': 50, 'price': 0, 'side': 'SELL'}
+                                  
+                                  broker.execute_spread(leg1, leg2)
+                                  subscribe_to_legs(leg1['symbol'], leg2['symbol'])
+                                  
+                              elif signal == "SELL_CALL_SPREAD":
+                                  # Bear Call Spread (Credit Strategy)
+                                  sell_strike = atm_strike
+                                  buy_strike = atm_strike + width
+                                  
+                                  sym_buy = f"{underlying} {expiry_str} {buy_strike} CE"
+                                  sym_sell = f"{underlying} {expiry_str} {sell_strike} CE"
+                                  
+                                  leg1 = {'symbol': sym_buy, 'qty': 50, 'price': 0, 'side': 'BUY'}
+                                  leg2 = {'symbol': sym_sell, 'qty': 50, 'price': 0, 'side': 'SELL'}
+                                  
+                                  broker.execute_spread(leg1, leg2)
+                                  subscribe_to_legs(leg1['symbol'], leg2['symbol'])
                                  
                 except Exception as e_inner:
                     logging.error(f"Error checking candle for {symbol}: {e_inner}")
@@ -317,6 +326,9 @@ def main():
     logging.info("🚀 Fortress Paper Trader Starting...")
     
     dhan = dhanhq(CLIENT_ID, ACCESS_TOKEN)
+
+    # Load Scrip Master (Critical for Subscription)
+    load_scrip_master()
     
     t_slow = threading.Thread(target=slow_loop)
     t_slow.daemon = True

@@ -78,10 +78,16 @@ class MarketAnalyzer:
                 # Sort by Expiry
                 expiry_col = next((c for c in df.columns if 'EXPIRY_DATE' in c), None)
                 if not futures.empty and expiry_col:
+                     # Convert to datetime for comparison
+                     futures[expiry_col] = pd.to_datetime(futures[expiry_col])
+                     today = pd.Timestamp.now().normalize()
+                     
+                     # Filter only future expiries
+                     futures = futures[futures[expiry_col] >= today]
                      futures = futures.sort_values(by=expiry_col)
                 
                 if not futures.empty:
-                     row = futures.iloc[0] # Near Month
+                     row = futures.iloc[0] # Near Month (valid)
                      sec_id = str(row[id_col])
                      sym = row[symbol_col]
                      print(f"✅ Found Future: {sym} (ID: {sec_id})")
