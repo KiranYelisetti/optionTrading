@@ -47,6 +47,7 @@ jobs:
         LOG_FILE_PATH = os.path.join(DATA_DIR, "app.log")
         SCRIP_MASTER_CSV = os.path.join(DATA_DIR, "scrip_master.csv")
         NIFTY_INDEX_ID = "13"
+        CAPITAL = 1000000
         EOF
 
     - name: Run Intraday Scan
