@@ -16,13 +16,19 @@ CLIENT_ID = "YOUR_CLIENT_ID" (or API Key)
 ACCESS_TOKEN = "YOUR_LONG_JWT_TOKEN"
 ```
 
-### 2. Daily Routine
-Every morning (before 9:15 AM), run the Analyzer to generate new zones.
+### 1. Pre-Market Check (09:00 AM)
+1. **Verify Symbol Format** (Monday Only):
+   Run this simply to ensure Dhan hasn't changed their date format (e.g., "23 JAN").
+   ```bash
+   python verify_symbol_format.py
+   ```
+   *Expected Output*: `✅ SUCCESS! Symbol found in Scrip Master.`
 
-```bash
-python fortress-paper/core/analyzer.py
-```
-This updates `fortress-paper/data/zones.json` with today's PDH, PDL, and Order Blocks.
+2. **Run Analysis**:
+   ```bash
+   python fortress-paper/core/analyzer.py
+   ```
+   *Output*: Generates `fortress-paper/data/zones.json` using **15-minute** data.
 
 ### 3. Running the Trader
 Start the main engine:
