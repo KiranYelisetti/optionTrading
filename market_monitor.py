@@ -4,6 +4,12 @@ import datetime
 import pytz
 import logging
 import pandas as pd
+import sys
+import os
+
+# Add fortress-paper to path so we can import config
+sys.path.append(os.path.join(os.path.dirname(__file__), 'fortress-paper'))
+
 from dhanhq import dhanhq
 from config import CLIENT_ID, ACCESS_TOKEN, ZONES_FILE, TRADE_LOG_FILE
 from core.strategy import FortressStrategy
