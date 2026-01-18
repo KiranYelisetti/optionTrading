@@ -48,6 +48,24 @@ The bot automatically tracks Mark-to-Market (MTM) for all open positions.
 > [!NOTE]
 > **Option Pricing**: MTM for Option legs currently relies on entry price due to the `subscribe_to_legs` gap. The implementation logic is ready but requires a Securities Master lookup to be fully real-time.
 
+## 🕒 External Scheduling (Reliable Cron)
+GitHub Actions Free Tier can be delayed. To run exactly on time (e.g., via [cron-job.org](https://cron-job.org)):
+
+**API Endpoint**:
+`POST https://api.github.com/repos/KiranYelisetti/optionTrading/dispatches`
+
+**Headers**:
+- `Accept`: `application/vnd.github.v3+json`
+- `Authorization`: `Bearer YOUR_GITHUB_PAT` (Create a Personal Access Token with `repo` scope)
+- `Content-Type`: `application/json`
+
+**Body**:
+```json
+{
+  "event_type": "market-monitor"
+}
+```
+
 ## 📁 Project Structure
 - `main.py`: Core Engine (Dual Loop: Candle Check + Live Feed).
 - `core/analyzer.py`: Market Structure Analysis (15m Data).
