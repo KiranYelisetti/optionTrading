@@ -2,3 +2,5 @@ dhanhq
 pandas
 pytest
 flake8
+requests
+pytz
