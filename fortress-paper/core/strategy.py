@@ -6,6 +6,9 @@ class FortressStrategy:
         self.market_sentiment_flag = "NEUTRAL" # BULLISH, BEARISH, NEUTRAL
         
     def _load_zones(self, zones_file):
+        if not zones_file:
+            return []
+            
         import json
         try:
             with open(zones_file, 'r') as f:
