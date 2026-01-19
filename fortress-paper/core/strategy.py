@@ -114,4 +114,27 @@ class FortressStrategy:
                              "reason": "Bullish Sweep + OI Confirmed"
                          }
                                  
+                            "reason": "Bullish Sweep + OI Confirmed"
+                        }
+                                
         return None
+
+    def inject_intraday_zones(self, dynamic_zones):
+        """
+        Merges dynamic / intraday zones with existing daily zones.
+        Ensures strict uniqueness to avoid duplicates.
+        """
+        if not dynamic_zones:
+            return
+            
+        current_ids = {z['id'] for z in self.zones}
+        count = 0
+        
+        for zone in dynamic_zones:
+            if zone['id'] not in current_ids:
+                self.zones.append(zone)
+                current_ids.add(zone['id'])
+                count += 1
+                
+        if count > 0:
+            print(f"⚡ Injected {count} Dynamic Intraday Zones.")

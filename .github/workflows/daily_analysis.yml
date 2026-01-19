@@ -50,11 +50,8 @@ jobs:
       env:
         DHAN_CLIENT_ID: ${{ secrets.DHAN_CLIENT_ID }}
         DHAN_ACCESS_TOKEN: ${{ secrets.DHAN_ACCESS_TOKEN }}
+        SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+        SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+        PYTHONPATH: ${{ github.workspace }}/fortress-paper
       run: |
         python fortress-paper/core/analyzer.py
-        
-    - name: Upload Zones Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: trading-zones
-        path: fortress-paper/data/zones.json

@@ -7,6 +7,7 @@
     "timeframe": "1D",
     "range_high": 25860.0,
     "range_low": 25840.0,
+    "status": "ACTIVE",
     "note": "Previous Day High - Wait for Sweep"
   },
   {
@@ -17,6 +18,7 @@
     "timeframe": "1D",
     "range_high": 25680.0,
     "range_low": 25660.0,
+    "status": "ACTIVE",
     "note": "Previous Day Low - Wait for Sweep"
   },
   {
@@ -67,6 +69,7 @@
     "timeframe": "1D",
     "range_high": 59960.0,
     "range_low": 59940.0,
+    "status": "ACTIVE",
     "note": "Previous Day High - Wait for Sweep"
   },
   {
@@ -77,6 +80,7 @@
     "timeframe": "1D",
     "range_high": 59590.2,
     "range_low": 59570.2,
+    "status": "ACTIVE",
     "note": "Previous Day Low - Wait for Sweep"
   },
   {
