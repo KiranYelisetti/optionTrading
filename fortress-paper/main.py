@@ -21,9 +21,20 @@ running = True
 
 # Initialize Modules
 broker = VirtualBroker(log_file=TRADE_LOG_FILE)
-strategy = FortressStrategy(zones_file=ZONES_FILE)
+strategy = FortressStrategy(zones_file=None) # Don't load file
 db = FortressDB()
 SCRIP_MASTER_DF = None
+
+# Load Zones from Supabase
+try:
+    active_zones = db.get_active_zones()
+    if active_zones:
+        strategy.zones = active_zones
+        logging.info(f"✅ Loaded {len(active_zones)} Zones from Supabase.")
+    else:
+        logging.warning("⚠️ No Active Zones found in Supabase.")
+except Exception as e:
+    logging.error(f"❌ Failed to load zones from DB: {e}")
 
 def load_scrip_master():
     global SCRIP_MASTER_DF
@@ -97,15 +108,11 @@ def check_candle_loop():
     logging.info("🕯️ Candle Check Loop Started (1m Interval)")
     
     # Symbols to watch
-    try:
-        with open(ZONES_FILE, 'r') as f:
-            zones = json.load(f)
-            watch_list = {} # {security_id: symbol}
-            for z in zones:
-                if 'security_id' in z:
-                    watch_list[z['security_id']] = z['symbol']
-    except:
-        watch_list = {}
+    watch_list = {} # {security_id: symbol}
+    if strategy.zones:
+        for z in strategy.zones:
+            if 'security_id' in z:
+                watch_list[z['security_id']] = z['symbol']
     
     processed_candles = set()
     
@@ -302,19 +309,17 @@ def main():
     
     # Subscribe to Futures Zones
     instruments = []
-    try:
-        with open(ZONES_FILE, 'r') as f:
-            zones = json.load(f)
-            subscribed_ids = set()
-            for z in zones:
-                if 'security_id' in z and z.get('status', 'ACTIVE') == 'ACTIVE':
-                    sid = z['security_id']
-                    if sid not in subscribed_ids:
-                        instruments.append((dhan.NSE_FNO, sid)) 
-                        subscribed_ids.add(sid)
-                        logging.info(f"➕ Subscribing to Zone: {z['symbol']} ({sid})")
-    except Exception as e:
-         logging.error(f"Zone Load Error: {e}")
+    if strategy.zones:
+        subscribed_ids = set()
+        for z in strategy.zones:
+            if 'security_id' in z and z.get('status', 'ACTIVE') == 'ACTIVE':
+                sid = z['security_id']
+                if sid not in subscribed_ids:
+                    instruments.append((dhan.NSE_FNO, sid)) 
+                    subscribed_ids.add(sid)
+                    logging.info(f"➕ Subscribing to Zone: {z['symbol']} ({sid})")
+    else:
+         logging.warning("⚠️ No Zones available for subscription.")
 
     if instruments:
         logging.info(f"📡 Connecting to Live Feed with {len(instruments)} instruments...")
