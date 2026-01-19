@@ -114,9 +114,6 @@ class FortressStrategy:
                              "reason": "Bullish Sweep + OI Confirmed"
                          }
                                  
-                            "reason": "Bullish Sweep + OI Confirmed"
-                        }
-                                
         return None
 
     def inject_intraday_zones(self, dynamic_zones):

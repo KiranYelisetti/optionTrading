@@ -67,7 +67,7 @@ class MarketAnalyzer:
                 else:
                     futures_mask = futures_mask & df[symbol_col].str.contains('FUT')
                 
-                futures = df[futures_mask]
+                futures = df[futures_mask].copy()
                 
                 expiry_col = next((c for c in df.columns if 'EXPIRY_DATE' in c), None)
                 if not futures.empty and expiry_col:
