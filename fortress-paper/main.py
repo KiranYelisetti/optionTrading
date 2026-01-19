@@ -8,7 +8,8 @@ import pandas as pd
 from config import CLIENT_ID, ACCESS_TOKEN, ZONES_FILE, DB_PATH, LOG_FILE_PATH, TRADE_LOG_FILE
 from core.virtual_broker import VirtualBroker
 from core.strategy import FortressStrategy
-from core.data_recorder import DataRecorder
+from core.db import FortressDB 
+from probe_dhan_methods import print_methods
 
 # Configure Logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -21,7 +22,58 @@ running = True
 # Initialize Modules
 broker = VirtualBroker(log_file=TRADE_LOG_FILE)
 strategy = FortressStrategy(zones_file=ZONES_FILE)
-recorder = DataRecorder(db_path=DB_PATH)
+db = FortressDB()
+SCRIP_MASTER_DF = None
+
+def load_scrip_master():
+    global SCRIP_MASTER_DF
+    logging.info("📥 Loading Scrip Master (this may take a moment)...")
+    try:
+        res = dhan.fetch_security_list()
+        if isinstance(res, pd.DataFrame):
+            SCRIP_MASTER_DF = res
+        elif isinstance(res, dict) and 'data' in res:
+            SCRIP_MASTER_DF = pd.DataFrame(res['data'])
+        else:
+            logging.warning(f"⚠️ Unexpected Scrip Master format: {type(res)}")
+            return
+
+        # Normalize columns for consistency
+        SCRIP_MASTER_DF.columns = [x.strip().upper() for x in SCRIP_MASTER_DF.columns]
+        logging.info(f"✅ Scrip Master Loaded: {len(SCRIP_MASTER_DF)} records")
+    except Exception as e:
+        logging.error(f"❌ Failed to load Scrip Master: {e}")
+
+def subscribe_to_legs(leg1_symbol, leg2_symbol):
+    """
+    Dynamically subscribes to new Option Strikes.
+    """
+    if not feed:
+        logging.error("❌ Feed not ready for subscription.")
+        return
+        
+    if SCRIP_MASTER_DF is None:
+        logging.error("❌ Scrip Master not loaded. Cannot look up IDs.")
+        return
+
+    tokens_to_sub = []
+    
+    for sym in [leg1_symbol, leg2_symbol]:
+        # Filter Master to find ID
+        # Strategy format: "NIFTY 30 JAN 25500 CE"
+        # We need to match this against 'SEM_TRADING_SYMBOL'
+        
+        row = SCRIP_MASTER_DF[SCRIP_MASTER_DF['SEM_TRADING_SYMBOL'] == sym]
+        if not row.empty:
+            sec_id = str(row.iloc[0]['SEM_SECURITY_ID'])
+            # Exchange Segment: NSE_FNO = 2
+            tokens_to_sub.append((dhan.NSE_FNO, sec_id))
+            logging.info(f"➕ Dynamically Subscribing: {sym} ({sec_id})")
+        else:
+            logging.warning(f"❌ ID Lookup Failed for {sym}")
+
+    if tokens_to_sub:
+        feed.subscribe_symbols(tokens_to_sub)
 
 def slow_loop():
     """
@@ -70,7 +122,7 @@ def check_candle_loop():
                         instrument_type='FUTIDX',
                         from_date=to_date,
                         to_date=to_date,
-                        interval='5' # <--- 5-Minute Data as per Strategy Refinement
+                        interval='5' # 5-Minute Data
                     )
                     
                     if res.get('status') == 'success' and res.get('data'):
@@ -79,17 +131,8 @@ def check_candle_loop():
                              continue
                              
                          latest = data[-1]
-                         # Check for duplicates using start_time (assuming API returns it)
-                         # Dhan API data list usually has 'start_time' or similar. 
-                         # Let's check keys from previous inspection or assumption. 
-                         # Standard key 'start_time' or 'date'? 
-                         # Based on analyzer.py usage, it might be an ordered list or dict.
-                         # Actually `intraday_minute_data` returns a dict with 'data' as list of things.
-                         # Each item has 'start_time' usually.
-                         
                          c_time = latest.get('start_time') or latest.get('time')
                          if not c_time:
-                             # Fallback if key missing (unlikely if success)
                              continue
                              
                          # Unique Key for this candle
@@ -128,6 +171,8 @@ def check_candle_loop():
                                  return (today + datetime.timedelta(days=days)).strftime("%d %b").upper()
                              
                              expiry_str = get_expiry_str()
+                             
+                             trade_res = None
 
                              if signal == "BUY_PUT_SPREAD":
                                  # Bull Put Spread (Credit Strategy)
@@ -140,7 +185,7 @@ def check_candle_loop():
                                  leg1 = {'symbol': sym_buy, 'qty': 50, 'price': 0, 'side': 'BUY'} 
                                  leg2 = {'symbol': sym_sell, 'qty': 50, 'price': 0, 'side': 'SELL'}
                                  
-                                 broker.execute_spread(leg1, leg2)
+                                 trade_res = broker.execute_spread(leg1, leg2)
                                  subscribe_to_legs(leg1['symbol'], leg2['symbol'])
                                  
                              elif signal == "SELL_CALL_SPREAD":
@@ -154,8 +199,18 @@ def check_candle_loop():
                                  leg1 = {'symbol': sym_buy, 'qty': 50, 'price': 0, 'side': 'BUY'}
                                  leg2 = {'symbol': sym_sell, 'qty': 50, 'price': 0, 'side': 'SELL'}
                                  
-                                 broker.execute_spread(leg1, leg2)
+                                 trade_res = broker.execute_spread(leg1, leg2)
                                  subscribe_to_legs(leg1['symbol'], leg2['symbol'])
+                             
+                             # Log to DB
+                             if trade_res:
+                                 db.log_trade({
+                                     "symbol": symbol,
+                                     "action": signal,
+                                     "price": candle['close'],
+                                     "timestamp": datetime.datetime.now().isoformat(),
+                                     "details": str(trade_res)
+                                 })
                                  
                 except Exception as e_inner:
                     logging.error(f"Error checking candle for {symbol}: {e_inner}")
@@ -163,92 +218,9 @@ def check_candle_loop():
         except Exception as e:
             logging.error(f"Candle Loop Error: {e}")
             
-            
         # Align to next minute start for precision
         sleep_time = 60 - (time.time() % 60)
         time.sleep(sleep_time) 
-
-# ... existing code ...
-
-SCRIP_MASTER_DF = None
-
-def load_scrip_master():
-    global SCRIP_MASTER_DF
-    logging.info("📥 Loading Scrip Master (this may take a moment)...")
-    try:
-        res = dhan.fetch_security_list()
-        if isinstance(res, pd.DataFrame):
-            SCRIP_MASTER_DF = res
-        elif isinstance(res, dict) and 'data' in res:
-            SCRIP_MASTER_DF = pd.DataFrame(res['data'])
-        else:
-            logging.warning(f"⚠️ Unexpected Scrip Master format: {type(res)}")
-            return
-
-        # Normalize columns for consistency
-        SCRIP_MASTER_DF.columns = [x.strip().upper() for x in SCRIP_MASTER_DF.columns]
-        logging.info(f"✅ Scrip Master Loaded: {len(SCRIP_MASTER_DF)} records")
-    except Exception as e:
-        logging.error(f"❌ Failed to load Scrip Master: {e}")
-
-def subscribe_to_legs(leg1_symbol, leg2_symbol):
-    """
-    Dynamically subscribes to new Option Strikes.
-    """
-    
-    if not feed:
-        logging.error("❌ Feed not ready for subscription.")
-        return
-        
-    if SCRIP_MASTER_DF is None:
-        logging.error("❌ Scrip Master not loaded. Cannot look up IDs.")
-        return
-
-    tokens_to_sub = []
-    
-    for sym in [leg1_symbol, leg2_symbol]:
-        # Filter Master to find ID
-        # Strategy format: "NIFTY 30 JAN 25500 CE"
-        # We need to match this against 'SEM_TRADING_SYMBOL' or construct it.
-        # Assuming Strategy generates symbols matching Dhan's 'SEM_TRADING_SYMBOL' or 'SEM_CUSTOM_SYMBOL'.
-        # Let's try exact match on SEM_TRADING_SYMBOL first.
-        
-        # Note: SCRIP_MASTER_DF columns normalized to UPPER.
-        # Likely 'SEM_TRADING_SYMBOL'
-        
-        row = SCRIP_MASTER_DF[SCRIP_MASTER_DF['SEM_TRADING_SYMBOL'] == sym]
-        if not row.empty:
-            sec_id = str(row.iloc[0]['SEM_SECURITY_ID'])
-            # Exchange Segment: NSE_FNO is usually 2.
-            # We can verify from master 'SEM_EXM_EXCH_ID' (NSE) and 'SEM_SEGMENT' (D)?
-            # Converting to Dhan convention: (ExchangeSegment, SecurityId)
-            # NSE_FNO = 2
-            tokens_to_sub.append((dhan.NSE_FNO, sec_id))
-            logging.info(f"➕ Dynamically Subscribing: {sym} ({sec_id})")
-        else:
-            logging.warning(f"❌ ID Lookup Failed for {sym}")
-
-    if tokens_to_sub:
-        feed.subscribe_symbols(tokens_to_sub) # Check method name: subscribe or subscribe_symbols?
-        # Inspection of `test_feed.py` output showed `subscribe_instruments` in `__dict__` and `subscribe_symbols`
-        # Let's use `subscribe_symbols` if that's what the inspection showed or `subscribe_instruments`.
-        # Inspection output step 543 showed: 'subscribe_instruments', 'subscribe_symbols', 'unsubscribe_symbols'
-        # feed.subscribe_symbols takes (exchange_segment, security_id) tuples usually? 
-        # Actually in inspection `subscribe_symbols(self, instruments)`
-        # Let's use `subscribe_symbols`.
-
-def check_candle_loop():
-    # ... (rest of logic same) ...
-    # At end of loop:
-        # Align to next minute start
-        sleep_time = 60 - (time.time() % 60)
-        time.sleep(sleep_time)
-
-# ... main function updates ...
-def main():
-    # ... logs ...
-    load_scrip_master() 
-    # ... rest ...
 
 class LiveFeed(DhanFeed):
     """
@@ -257,16 +229,6 @@ class LiveFeed(DhanFeed):
     def process_ticker(self, data):
         # Decode using Parent Logic
         res = super().process_ticker(data)
-        # Map Keys for on_market_update
-        # Inspection showed keys: "LTP", "security_id", etc.
-        # We need to ensure consistency.
-        
-        # Add Symbol if possible? 
-        # Ticker data only has Security ID.
-        # We need a Map!
-        # logic: local lookup map.
-        
-        # Pass to main handler
         on_market_update(res)
         return res
         
@@ -308,7 +270,7 @@ def on_market_update(tick_data):
     Fast Loop: Log Data & Check Stops.
     """
     try:
-        recorder.log_tick(tick_data)
+        # recorder.log_tick(tick_data) # Skip high freq logging to DB for now
         
         if 'ltp' in tick_data and 'symbol' in tick_data:
             broker.update_ltp(tick_data['symbol'], float(tick_data['ltp']))

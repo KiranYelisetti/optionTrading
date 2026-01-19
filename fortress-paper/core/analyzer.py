@@ -30,6 +30,14 @@ class MarketAnalyzer:
         offset = (last_day_month.weekday() - 3) % 7
         last_thursday = last_day_month - datetime.timedelta(days=offset)
         
+        # Check if today is PAST the last Thursday of this month
+        if today > last_thursday.date():
+             # Move to next month
+             next_month_date = today.replace(day=28) + datetime.timedelta(days=32) # Jump to next month
+             last_day_next_month = next_month_date - datetime.timedelta(days=next_month_date.day)
+             offset_next = (last_day_next_month.weekday() - 3) % 7
+             last_thursday = last_day_next_month - datetime.timedelta(days=offset_next)
+        
         fmt_date = last_thursday.strftime("%d %b %y").upper()
         return f"{base} {fmt_date} FUT"
 
