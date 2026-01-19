@@ -5,6 +5,8 @@ on:
     # Run Daily at 08:45 AM IST (03:15 UTC)
     - cron: '15 3 * * *'
   workflow_dispatch: # Allow manual trigger
+  repository_dispatch:
+    types: [daily-market-analysis]
 
 jobs:
   analyze:
