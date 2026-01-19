@@ -142,7 +142,7 @@ def identify_smart_money_structure(df, symbol_name, security_id):
                     if prev['close'] < prev['open']: # Red Candle
                         # Valid Bullish OB
                         zones.append({
-                            "id": f"OB_DEMAND_{len(zones)}",
+                            "id": f"{symbol_name}_OB_DEMAND_{len(zones)}",
                             "symbol": symbol_name,
                             "security_id": security_id,
                             "type": "DEMAND",
@@ -157,7 +157,7 @@ def identify_smart_money_structure(df, symbol_name, security_id):
                     if prev['close'] > prev['open']: # Green Candle
                         # Valid Bearish OB
                         zones.append({
-                            "id": f"OB_SUPPLY_{len(zones)}",
+                            "id": f"{symbol_name}_OB_SUPPLY_{len(zones)}",
                             "symbol": symbol_name,
                             "security_id": security_id,
                             "type": "SUPPLY",
